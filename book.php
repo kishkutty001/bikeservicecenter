@@ -12,18 +12,19 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+$username = $_SESSION['user_name'] ?? '';
 
 include('db.php');
 
 // Get and sanitize POST data
-$username = $_POST['username'] ?? '';
-$mobile = $_POST['mobile'] ?? '';
-$service_type = $_POST['service_type'] ?? '';
-$location = $_POST['location'] ?? '';
-$vehicle_type = $_POST['vehicle_type'] ?? '';
+$mobile        = $_POST['mobile'] ?? '';
+$service_type  = $_POST['service_type'] ?? '';
+$location      = $_POST['location'] ?? '';
+$vehicle_type  = $_POST['vehicle_type'] ?? '';
 $vehicle_model = $_POST['vehicle_model'] ?? '';
-$issue_type = $_POST['issue_type'] ?? '';
-$message = $_POST['message'] ?? '';
+$issue_type    = $_POST['issue_type'] ?? '';
+$message       = $_POST['message'] ?? '';
+$booking_date  = date('Y-m-d H:i:s'); // current datetime
 
 // Validate required fields
 if (empty($username) || empty($mobile) || empty($service_type) || empty($location) || empty($vehicle_type) || empty($vehicle_model) || empty($issue_type)) {
@@ -35,8 +36,13 @@ if (empty($username) || empty($mobile) || empty($service_type) || empty($locatio
 }
 
 // Prepare SQL statement
-$stmt = $conn->prepare("INSERT INTO service_bookings (user_id, username, mobile, service_type, location, vehicle_type, vehicle_model, issue_type, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-$stmt->bind_param("issssssss", $user_id, $username, $mobile, $service_type, $location, $vehicle_type, $vehicle_model, $issue_type, $message);
+$stmt = $conn->prepare("INSERT INTO service_bookings 
+    (user_id, username, mobile, service_type, location, vehicle_type, vehicle_model, issue_type, message, booking_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param(
+    "isssssssss", 
+    $user_id, $username, $mobile, $service_type, $location, $vehicle_type, $vehicle_model, $issue_type, $message, $booking_date
+);
 
 // Execute and return response
 if ($stmt->execute()) {

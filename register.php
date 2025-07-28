@@ -7,10 +7,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email     = trim($_POST['email'] ?? '');
     $password  = trim($_POST['password'] ?? '');
     $mobile    = trim($_POST['mobile'] ?? '');
-    $user_type = trim($_POST['user_type'] ?? '');
+    $user_type = trim($_POST['user_type'] ?? 'user'); // default to 'user'
 
     // 1. Empty field check
-    if (empty($name) || empty($email) || empty($password) || empty($mobile) || empty($user_type)) {
+    if (empty($name) || empty($email) || empty($password) || empty($mobile)) {
         http_response_code(404);
         echo json_encode(["status" => "error", "message" => "All fields are required."]);
         exit;

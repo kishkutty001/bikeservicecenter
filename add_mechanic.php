@@ -1,55 +1,62 @@
 <?php
-session_start();
 header('Content-Type: application/json');
+include('db.php'); // include your DB connection
 
-// Admin access check
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(["status" => "error", "message" => "Unauthorized. Please log in."]);
-    exit();
+// Get data from POST
+$mechanic_name   = $_POST['mechanic_name'] ?? null;
+$email_address   = $_POST['email_address'] ?? null;
+$phone_number    = $_POST['phone_number'] ?? null;
+$mechanic_id     = $_POST['mechanic_id'] ?? null;
+$experience      = $_POST['experience'] ?? null;
+$specialization  = $_POST['specialization'] ?? null;
+$licence_number  = $_POST['licence_number'] ?? null;
+$address         = $_POST['address'] ?? null;
+
+// Validate required fields
+if (!$mechanic_name || !$email_address || !$phone_number || !$mechanic_id || !$experience || !$specialization || !$licence_number || !$address) {
+    echo json_encode(['status' => 'error', 'message' => 'All fields are required']);
+    exit;
 }
 
-include('db.php');
+// Handle image upload if present
+$mechanic_image = null;
+if (isset($_FILES['mechanic_image']) && $_FILES['mechanic_image']['error'] === UPLOAD_ERR_OK) {
+    $file_tmp = $_FILES['mechanic_image']['tmp_name'];
+    $file_name = basename($_FILES['mechanic_image']['name']);
+    $target_dir = 'uploads/'; // change as needed
+    $target_file = $target_dir . uniqid('mech_', true) . '_' . $file_name;
 
-$admin_id = $_SESSION['user_id'];
-
-// Verify admin
-$stmt = $conn->prepare("SELECT user_type FROM users WHERE id = ?");
-$stmt->bind_param("i", $admin_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$user = $result->fetch_assoc();
-
-if (!$user || $user['user_type'] !== 'admin') {
-    echo json_encode(["status" => "error", "message" => "Access denied. Admins only."]);
-    exit();
+    if (move_uploaded_file($file_tmp, $target_file)) {
+        $mechanic_image = basename($target_file); // save only the file name in DB
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to upload mechanic image']);
+        exit;
+    }
 }
 
-// Get and validate POST data
-$name = $_POST['name'] ?? '';
-$mobile = $_POST['mobile'] ?? '';
-$user_experince = $_POST['user_experince'] ?? '';
-$expertise = $_POST['expertise'] ?? '';
+// Insert into database
+$stmt = $conn->prepare("INSERT INTO mechanic 
+    (mechanic_name, email_address, phone_number, mechanic_id, experience, specialization, licence_number, address, mechanic_image) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param(
+    "sssssssss", 
+    $mechanic_name, 
+    $email_address, 
+    $phone_number, 
+    $mechanic_id, 
+    $experience, 
+    $specialization, 
+    $licence_number, 
+    $address, 
+    $mechanic_image
+);
 
-if (empty($name) || empty($mobile) || empty($user_experince) || empty($expertise)) {
-    echo json_encode(["status" => "error", "message" => "All fields are required."]);
-    exit();
-}
-
-// Insert mechanic
-$insert = $conn->prepare("INSERT INTO mechanics (name, mobile, user_experince, expertise) VALUES (?, ?, ?, ?)");
-$insert->bind_param("ssss", $name, $mobile, $user_experince, $expertise);
-
-if ($insert->execute()) {
-    echo json_encode([
-        "status" => "success",
-        "message" => "Mechanic added successfully.",
-        "mechanic_id" => $insert->insert_id
-    ]);
+if ($stmt->execute()) {
+    echo json_encode(['status' => 'success', 'message' => 'Mechanic added successfully']);
 } else {
-    echo json_encode(["status" => "error", "message" => "Failed to add mechanic: " . $insert->error]);
+    echo json_encode(['status' => 'error', 'message' => 'Failed to add mechanic. ' . $conn->error]);
 }
 
 $stmt->close();
-$insert->close();
 $conn->close();
 ?>
