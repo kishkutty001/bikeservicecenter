@@ -20,8 +20,8 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 
-if (!$user || $user['user_type'] !== 'admin') {
-    echo json_encode(["status" => "error", "message" => "Access denied. Admins only."]);
+if (!$user || $user['user_type'] !== 'mechanic') {
+    echo json_encode(["status" => "error", "message" => "Access denied. mechanic only."]);
     exit();
 }
 

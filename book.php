@@ -35,13 +35,54 @@ if (empty($username) || empty($mobile) || empty($service_type) || empty($locatio
     exit();
 }
 
-// Prepare SQL statement
+// Define amount mapping based on service_type and issue_type
+$pricing = [
+    'Repair' => [
+        'Engine Issue'       => 1500,
+        'Brake Issue'        => 800,
+        'Electrical Issue'   => 1000
+    ],
+    'Towing' => [
+        'Accident'           => 2500,
+        'Breakdown'          => 2000
+    ],
+    'Spare Parts' => [
+        'Battery'            => 3000,
+        'Tyre'               => 2500
+    ],
+    'Emergency Service' => [
+        'Night Breakdown'    => 3500,
+        'Accident Emergency' => 4000,
+        'Flat Tyre Emergency'=> 3000
+    ]
+];
+
+
+// Default amount
+$base_amount = 0;
+
+// Lookup amount
+if (isset($pricing[$service_type][$issue_type])) {
+    $base_amount = $pricing[$service_type][$issue_type];
+} else {
+    echo json_encode([
+        "status" => "error",
+        "message" => "Invalid service type or issue type for pricing."
+    ]);
+    exit();
+}
+
+// Add service charge
+$service_charge = 200; // You can set your desired service charge here
+$total_amount = $base_amount + $service_charge;
+
+// Prepare SQL statement with total amount
 $stmt = $conn->prepare("INSERT INTO service_bookings 
-    (user_id, username, mobile, service_type, location, vehicle_type, vehicle_model, issue_type, message, booking_date)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    (user_id, username, mobile, service_type, location, vehicle_type, vehicle_model, issue_type, message, booking_date, amount)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 $stmt->bind_param(
-    "isssssssss", 
-    $user_id, $username, $mobile, $service_type, $location, $vehicle_type, $vehicle_model, $issue_type, $message, $booking_date
+    "isssssssssd", 
+    $user_id, $username, $mobile, $service_type, $location, $vehicle_type, $vehicle_model, $issue_type, $message, $booking_date, $total_amount
 );
 
 // Execute and return response
@@ -49,7 +90,10 @@ if ($stmt->execute()) {
     echo json_encode([
         "status" => "success",
         "message" => "Service booked successfully.",
-        "booking_id" => $stmt->insert_id
+        "booking_id" => $stmt->insert_id,
+        "base_amount" => $base_amount,
+        "service_charge" => $service_charge,
+        "total_amount" => $total_amount
     ]);
 } else {
     echo json_encode([

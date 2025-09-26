@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
-// Step 2: Check if user is admin
+// Step 2: Check if user is admin or mechanic
 $stmt = $conn->prepare("SELECT user_type FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -19,8 +19,10 @@ $result = $stmt->get_result();
 
 if ($result && $result->num_rows > 0) {
     $user = $result->fetch_assoc();
-    if ($user['user_type'] !== 'admin') {
-        echo json_encode(["status" => "error", "message" => "Access denied: Admins only."]);
+    $user_type = $user['user_type'];
+    
+    if ($user_type !== 'admin' && $user_type !== 'mechanic') {
+        echo json_encode(["status" => "error", "message" => "Access denied: Only admin and mechanic users can view bookings."]);
         exit();
     }
 } else {
@@ -28,9 +30,9 @@ if ($result && $result->num_rows > 0) {
     exit();
 }
 
-// Step 3: Fetch all service bookings
+// Step 3: Fetch service bookings
 $query = "SELECT booking_id, user_id, username, mobile, service_type, location, vehicle_type, vehicle_model, 
-          issue_type, message, status, mechanic_id, booking_date 
+          issue_type, message, status, mechanic_id, booking_date, service_complete 
           FROM service_bookings 
           ORDER BY created_at ASC";
 
